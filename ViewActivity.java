@@ -16,7 +16,7 @@ import android.widget.Toast;
 
 public class ViewActivity extends AppCompatActivity {
 
-    Button play1, play2, play3, play4, play5, play6,share1, share2, share3, share4, share5, share6,blue1, blue2, blue3, blue4, blue5, blue6;
+    Button play1, play2, play3, play4, play5, play6, share1, share2, share3, share4, share5, share6, blue1, blue2, blue3, blue4, blue5, blue6;
     MediaPlayer mp1, mp2, mp3, mp4, mp5, mp6;
 
     @Override
@@ -188,32 +188,58 @@ public class ViewActivity extends AppCompatActivity {
             }
         });
     }
-        private void compartirRingtone(int idAudio, String nombreArchivo) {
-            try {
 
-                java.io.File archivoTemp = new java.io.File(getExternalCacheDir(), nombreArchivo);
-                java.io.InputStream inputStream = getResources().openRawResource(idAudio);
-                java.io.FileOutputStream outputStream = new java.io.FileOutputStream(archivoTemp);
+    private void compartirRingtone(int idAudio, String nombreArchivo) {
+        // 1. Crear el cuadro de diálogo (Modal)
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("¡FELICIDADES!");
+        builder.setMessage("¡Has ganado un punto!");
 
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = inputStream.read(buffer)) > 0) {
-                    outputStream.write(buffer, 0, length);
+        // 2. Botón Aceptar: Contiene TODA la lógica que hicimos en la Actividad 2
+        builder.setPositiveButton("ACEPTAR", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                try {
+                    // Copiar a caché
+                    java.io.File archivoTemp = new java.io.File(getExternalCacheDir(), nombreArchivo);
+                    java.io.InputStream inputStream = getResources().openRawResource(idAudio);
+                    java.io.FileOutputStream outputStream = new java.io.FileOutputStream(archivoTemp);
+
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = inputStream.read(buffer)) > 0) {
+                        outputStream.write(buffer, 0, length);
+                    }
+                    inputStream.close();
+                    outputStream.close();
+
+                    // Intent con FileProvider
+                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(ViewActivity.this, getPackageName() + ".fileprovider", archivoTemp);
+
+                    android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                    shareIntent.setType("audio/mp3");
+                    shareIntent.putExtra(android.content.Intent.EXTRA_STREAM, uri);
+                    shareIntent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                    // Abrir menú de envío
+                    startActivity(android.content.Intent.createChooser(shareIntent, "Compartir Ringtone vía..."));
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    android.widget.Toast.makeText(ViewActivity.this, "Error al compartir", android.widget.Toast.LENGTH_SHORT).show();
                 }
-                inputStream.close();
-                outputStream.close();
-
-                android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(this, getPackageName() + ".fileprovider", archivoTemp);
-
-                android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
-                shareIntent.setType("audio/mp3");
-                shareIntent.putExtra(android.content.Intent.EXTRA_STREAM, uri);
-
-                startActivity(android.content.Intent.createChooser(shareIntent, "Compartir Ringtone vía..."));
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                android.widget.Toast.makeText(this, "Error al compartir el archivo", android.widget.Toast.LENGTH_SHORT).show();
             }
-        }
+        });
+
+        // 3. Botón Cancelar: Solo cierra el mensaje
+        builder.setNegativeButton("CANCELAR", new android.content.DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(android.content.DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+
+        // 4. Mostrar el modal en pantalla
+        builder.create().show();
     }
+}
